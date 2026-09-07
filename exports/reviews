@@ -63,6 +63,18 @@ const shownKey = (row) => {
     return key;
 };
 
+// The review level a row still supports, for prose that names what was done:
+// null where nothing was recorded, or where the record predates types. It
+// carries shownKey's lost-evidence downgrade — a formal review whose record has
+// gone cannot go on calling itself formal — but not shownKey's human-origin
+// promotion, which is a claim about the file rather than about the reading. The
+// columns say how a file stands; this says what somebody did to it, and a
+// cursory review of a file a person wrote was still a cursory review.
+const levelOf = (row) => {
+    if (!row.reading || !row.reading.type) return null;
+    return row.reading.type === 'formal' && row.lost ? 'careful' : row.reading.type;
+};
+
 // A file a person wrote never wants a reviewer, so 🟢 stands until somebody
 // reads it: editing one does not make it want re-reading, and a review that has
 // drifted leaves it exactly as settled as it was. A current review says more
@@ -549,9 +561,18 @@ function show(onlyStale) {
     // A commit is the only identifier a reader of the committed report can
     // resolve: GitHub has no route for a blob hash. Where none exists, the row
     // names nothing rather than offering something unusable.
+    // A drifted row loses its type from the icon columns — ⚠️ sits in the same
+    // column as ✅ — so naming the level here is the only place the report can
+    // say whether what has gone stale was a glance or an inspection, which is
+    // the difference between rereading a file and taking it on trust.
+    // A record from before types were kept says nothing rather than guessing.
     const at = (row) => {
+        const level = levelOf(row);
         const commit = commitFor(blobRead(row.reading));
-        return commit ? `since ${commit.slice(0, 7)}` : 'since it was reviewed';
+        if (!level) return commit ? `since ${commit.slice(0, 7)}` : 'since it was reviewed';
+        return commit
+            ? `since ${level} review at ${commit.slice(0, 7)}`
+            : `since a ${level} review`;
     };
     // What the evidence of a formal review is worth: where it stands itself, and
     // whether the version named still exists at all.
@@ -592,6 +613,13 @@ function show(onlyStale) {
     ]);
     const used = keep(columns);
 
+    // Both renderings name the two sections with the same words, so a reader
+    // who has met one recognizes the other. --stale lists a subset and counts a
+    // population that subset does not show, so each heading says which of the
+    // two it is describing.
+    const summaryHeading = onlyStale ? 'Whole repository' : 'Summary';
+    const filesHeading = onlyStale ? 'Files wanting a reviewer' : 'All files';
+
     // The two renderings put the summary at opposite ends for the same reason.
     // A terminal scrolls, so what is on screen when the prompt returns is the
     // last thing printed and the file list has gone by; a file does not, so
@@ -611,11 +639,18 @@ function show(onlyStale) {
             .join(' ').trimEnd();
         const iconWidth = columns.length * 3 - 1;
         const padMarks = (marks) => marked(marks) + ' '.repeat(iconWidth - cells(marked(marks)));
+        // Headings, because the marks in the tally are a legend and the same
+        // marks in the table are findings. Unlabelled, the two blocks read as
+        // one list and a ❌ explaining a count is taken for a file in trouble.
+        console.log();
+        console.log(`  ${filesHeading}`);
         console.log();
         for (const row of wanted) {
             console.log(`  ${padMarks(marksOf(row))}  ${row.file.padEnd(fileWidth)}  `
                 + `${reader(row).padEnd(readerWidth)}  ${since(row)}`.trimEnd());
         }
+        console.log();
+        console.log(`  ${summaryHeading}`);
         console.log();
         let origins = false;
         for (const [key, entry] of shown) {
@@ -645,10 +680,8 @@ function show(onlyStale) {
 
     // The summary leads. It is a handful of lines and answers the question a
     // reader arrives with — how much of this wants attention — where the file
-    // table can run to hundreds of rows and bury it. Under --stale it counts
-    // files the table below deliberately does not list, so it says which
-    // population it is describing.
-    lines.push(onlyStale ? '## Whole repository' : '## Summary', '');
+    // table can run to hundreds of rows and bury it.
+    lines.push(`## ${summaryHeading}`, '');
     lines.push(`| ${blanks} | Files | Meaning |`, `| ${rules} | ---: | --- |`);
     for (const [key, entry] of shown) {
         lines.push(`|${cellsOf(used(legendMarks(key, entry)))}| ${counts[key]} `
@@ -657,9 +690,7 @@ function show(onlyStale) {
     lines.push('', '❌ means no review has been *recorded*, which is not the same as nobody '
         + 'having reviewed the file.', '');
 
-    // --stale lists a subset, so the heading says which list this is rather
-    // than claiming every file in either case.
-    lines.push(onlyStale ? '## Files wanting a reviewer' : '## All files', '');
+    lines.push(`## ${filesHeading}`, '');
     lines.push(`| ${blanks} | File | Reviewed by (dates UTC) | Since |`,
         `| ${rules} | --- | --- | --- |`);
     for (const row of wanted) {

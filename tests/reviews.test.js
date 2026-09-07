@@ -93,11 +93,24 @@ describe('reviews', function () {
         assert.match(stdout, /\+1 −0 since/);
     });
 
+    it('names the level of a review that has gone stale', function () {
+        const dir = repository([{ 'a.txt': 'one\n' }]);
+        reviews(dir, ['record', 'a.txt', '--careful']);
+        fs.writeFileSync(path.join(dir, 'a.txt'), 'two\n');
+        execFileSync('git', ['commit', '-qam', 'edit it'], { cwd: dir });
+        // A drifted row cannot carry its level in the icons — ⚠️ takes the
+        // column ✅ would — so the text is the only place the report can say
+        // whether what went stale was a glance or an inspection.
+        const line = reviews(dir, ['show']).stdout
+            .split('\n').find((l) => l.includes('a.txt'));
+        assert.match(line, /since careful review at [0-9a-f]{7}/);
+    });
+
     it('names no commit when what was reviewed is in none', function () {
         const dir = repository([{ 'a.txt': 'one\n' }]);
         fs.writeFileSync(path.join(dir, 'a.txt'), 'edited\n');
         reviews(dir, ['record', 'a.txt']);
-        assert.match(reviews(dir, ['show']).stdout, /unchanged since it was reviewed/);
+        assert.match(reviews(dir, ['show']).stdout, /unchanged since a cursory review/);
     });
 
     it('stores no commit, so the report cannot cache a stale one', function () {
@@ -113,12 +126,13 @@ describe('reviews', function () {
         const dir = repository([{ 'a.txt': 'one\n' }]);
         fs.writeFileSync(path.join(dir, 'a.txt'), 'edited\n');
         reviews(dir, ['record', 'a.txt']);
-        assert.match(reviews(dir, ['show']).stdout, /unchanged since it was reviewed/);
+        assert.match(reviews(dir, ['show']).stdout, /unchanged since a cursory review/);
 
         execFileSync('git', ['commit', '-qam', 'land it'], { cwd: dir });
         const head = execFileSync('git', ['rev-parse', 'HEAD'],
             { cwd: dir, encoding: 'utf8' }).trim().slice(0, 7);
-        assert.match(reviews(dir, ['show']).stdout, new RegExp(`unchanged since ${head}`));
+        assert.match(reviews(dir, ['show']).stdout,
+            new RegExp(`unchanged since cursory review at ${head}`));
     });
 
     it('stops naming a commit an amend has orphaned', function () {
@@ -126,7 +140,8 @@ describe('reviews', function () {
         reviews(dir, ['record', 'a.txt']);
         const before = execFileSync('git', ['rev-parse', 'HEAD'],
             { cwd: dir, encoding: 'utf8' }).trim().slice(0, 7);
-        assert.match(reviews(dir, ['show']).stdout, new RegExp(`unchanged since ${before}`));
+        assert.match(reviews(dir, ['show']).stdout,
+            new RegExp(`unchanged since cursory review at ${before}`));
 
         execFileSync('git', ['commit', '-q', '--amend', '-m', 'reworded'], { cwd: dir });
         const stdout = reviews(dir, ['show']).stdout;
@@ -134,7 +149,7 @@ describe('reviews', function () {
             'named a commit no longer reachable, which 404s for anyone who cloned');
         const after = execFileSync('git', ['rev-parse', 'HEAD'],
             { cwd: dir, encoding: 'utf8' }).trim().slice(0, 7);
-        assert.match(stdout, new RegExp(`unchanged since ${after}`));
+        assert.match(stdout, new RegExp(`unchanged since cursory review at ${after}`));
     });
 
     it('records a cursory review when no type is given', function () {
@@ -229,6 +244,10 @@ describe('reviews', function () {
         assert.match(stdout, /\| 👀 \| ✅ \|[\s|]*`a\.txt`/);
         assert.doesNotMatch(stdout, /🔬/);
         assert.doesNotMatch(stdout, /record\.md/);
+        // The prose falls with the mark: naming it formal would assert a level
+        // nothing in the repository can still back.
+        assert.match(stdout, /since careful review at/);
+        assert.doesNotMatch(stdout, /formal review/);
         // The log still holds what was claimed at the time.
         const recorded = JSON.parse(fs.readFileSync(logIn(dir), 'utf8')
             .split('\n')[0]);
@@ -362,7 +381,8 @@ describe('reviews', function () {
         execFileSync('git', ['config', 'user.name', 'A Person'], { cwd: dir });
         fs.writeFileSync(path.join(dir, 'a.txt'), 'one\n');
         assert.strictEqual(reviews(dir, ['record', 'a.txt']).exit, 0);
-        assert.match(reviews(dir, ['show']).stdout, /\| 👀 \|.*`a\.txt`.*it was reviewed/);
+        assert.match(reviews(dir, ['show']).stdout,
+            /\| 👀 \|.*`a\.txt`.*since a cursory review/);
     });
 
     it('refuses to record a review of a file that does not exist', function () {
