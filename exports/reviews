@@ -133,7 +133,7 @@ const REPO = (() => {
 
 // The log lives in this module's trim directory. A repository's root is for
 // what its readers open; the log is written and read by the command.
-const LOG = process.env.REVIEWS_LOG || path.join(REPO, '.ai-coding-dev', 'reviews.jsonl');
+const LOG = process.env.REVIEWS_LOG || path.join(REPO, '.review-ledger', 'reviews.jsonl');
 
 // null in a repository with no commits, which is where a first report is run.
 function headCommit() {

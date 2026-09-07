@@ -1,4 +1,4 @@
-ARG PARENT_IMAGE=cirss/ai-coding-dev-parent:latest
+ARG PARENT_IMAGE=cirss/review-ledger-parent:latest
 
 FROM ${PARENT_IMAGE}
 
@@ -10,7 +10,7 @@ RUN bash /repro/dist/boot-setup
 
 USER repro
 
-RUN repro.require ai-coding-dev exports --code --report
+RUN repro.require review-ledger exports --code --report
 
 RUN sudo npm install -g 'mocha@11.7.5'
 

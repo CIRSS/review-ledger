@@ -1,5 +1,6 @@
 # Where a consuming REPRO persists its report.
 repro.env REVIEWS_REPORT '${REPRO_MNT}/REVIEWS.md'
+repro.env REVIEWS_LOG '${REPRO_MNT}/.'"${module_name}"'/reviews.jsonl'
 
 # Make the installed reviews command executable.
 chmod +x "$1/reviews"

@@ -1,7 +1,7 @@
 
 NODE_VERSION=22.11.0
 
-REPRO_NAME=ai-coding-dev
+REPRO_NAME=review-ledger
 REPRO_DOCKER_ORG=cirss
 REPRO_IMAGE_TAG=latest
 
@@ -15,5 +15,5 @@ start:                  start-repro   ## Start an interactive session in this RE
 
 update-reviews:         build-reports ## Rewrite REVIEWS.md, then show who has reviewed what.
 
-# Include custom targets provided by ai-coding-dev
--include .ai-coding-dev/host-makefile
+# Include custom targets provided by review-ledger
+-include .review-ledger/host-makefile

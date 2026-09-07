@@ -9,7 +9,7 @@ const os = require('os');
 const path = require('path');
 
 // The log's default home: this module's trim directory in the repository.
-const logIn = (dir) => path.join(dir, '.ai-coding-dev', 'reviews.jsonl');
+const logIn = (dir) => path.join(dir, '.review-ledger', 'reviews.jsonl');
 
 // Builds a repository with one commit per entry of `steps`, each a map of file
 // to content. Returns its path.
@@ -38,7 +38,7 @@ function repository(steps) {
 // carries the host's, and a suite that inherits it tests the developer's shell.
 function reviews(dir, args, env = {}) {
     const options = { cwd: dir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env, REVIEWS_BY: '', ...env } };
+        env: { ...process.env, REVIEWS_BY: '', REVIEWS_LOG: '', ...env } };
     try {
         return { exit: 0, stdout: execFileSync('reviews', args, options), stderr: '' };
     } catch (error) {
@@ -50,7 +50,8 @@ function reviews(dir, args, env = {}) {
 function reviewsAtTerminal(dir, args) {
     const output = execFileSync('script',
         ['-qec', ['reviews', ...args].join(' '), '/dev/null'],
-        { cwd: dir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+        { cwd: dir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+            env: { ...process.env, REVIEWS_LOG: '' } });
     return output.split('\r').join('');
 }
 

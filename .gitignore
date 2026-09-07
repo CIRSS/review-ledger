@@ -4,4 +4,4 @@ node_modules
 .*
 !.gitignore
 !.editorconfig
-!.ai-coding-dev/
+!.review-ledger/
