@@ -1,4 +1,4 @@
-# ai-coding-dev
+# review-ledger
 
 A [REPRO](https://github.com/repros-dev) capability module for keeping a person in control of code they did not write. One program so far, `reviews`; the module is shaped for more.
 
@@ -104,7 +104,7 @@ REPRO_DOCKER_OPTIONS = --env REVIEWS_BY="$(shell git config user.name)"
 ## In a consuming repository
 
 ```
-.ai-coding-dev/reviews.jsonl    the log — append-only, written only by reviews
+.review-ledger/reviews.jsonl    the log — append-only, written only by reviews
 REVIEWS.md                      the report — generated
 ```
 
@@ -112,7 +112,7 @@ The log is the only file anyone touches, through `reviews record` and `reviews d
 
 The report describes only the present, and can afford to because the log holds the past — so a log git never sees is a record nobody else will ever read, and the loss surfaces at the first fresh clone, when it is already gone. `record` and `declare` stop when the log is ignored, naming the pattern responsible. At a terminal they offer to fix it; anywhere else — under make, in a script, in CI — they refuse and say what to run, since a question nobody can answer is worse than a message. `reviews track` writes the exception and verifies it took. It never stages anything: what goes into a commit is the committer's to choose.
 
-`REVIEWS_LOG` sets where the log is kept. A consuming REPRO declares it in its Dockerfile with `repro.env`; unset, the log is `.ai-coding-dev/reviews.jsonl`.
+`REVIEWS_LOG` sets where the log is kept. This module's `exports/base-setup` sets it for every consuming REPRO, derived from the name the consumer required the module under — so a consumer neither declares it nor should, a hardcoded path pinning the repository to a module name it would otherwise follow automatically. Unset entirely, the log is `.review-ledger/reviews.jsonl`.
 
 Records are one JSON object per line:
 
@@ -128,7 +128,7 @@ Reviews and origin declarations both follow a file across renames.
 ## Requiring the module
 
 ```
-repro.require ai-coding-dev main ${CIRSS}
+repro.require review-ledger main ${CIRSS}
 ```
 
 **The consuming REPRO must provide Node.** `repro.require` copies programs, not runtimes, and the REPRO base image has none. Any repository with a JavaScript test suite already satisfies this.
@@ -143,10 +143,10 @@ Two profiles beyond the base:
 Add one line to the consuming REPRO's `repro-config`:
 
 ```make
--include .ai-coding-dev/host-makefile
+-include .review-ledger/host-makefile
 ```
 
-This is part of adopting the module rather than an extra. It provides `make reviews`, and `.ai-coding-dev/agents.md` — delivered to every consumer whether or not the line is present — tells agents to run it; without the include every command in those instructions fails with `No rule to make target 'reviews'`.
+This is part of adopting the module rather than an extra. It provides `make reviews`, and `.review-ledger/agents.md` — delivered to every consumer whether or not the line is present — tells agents to run it; without the include every command in those instructions fails with `No rule to make target 'reviews'`.
 
 `-include`, not `include`: the trim directory is written when the REPRO starts, so a fresh clone has to be able to build without it.
 
@@ -156,7 +156,7 @@ This is part of adopting the module rather than an extra. It provides `make revi
 
 ## Instructions for agents
 
-`exports/agents.md` states the workflow the tool assumes and how a coding agent should behave in a repository that uses it — chiefly that recording a review is a person's act, and that an agent reading a file is not one. It is delivered to `.ai-coding-dev/agents.md`, so a consuming project's own agent instructions can point at it in a line and add whatever else that project needs.
+`exports/agents.md` states the workflow the tool assumes and how a coding agent should behave in a repository that uses it — chiefly that recording a review is a person's act, and that an agent reading a file is not one. It is delivered to `.review-ledger/agents.md`, so a consuming project's own agent instructions can point at it in a line and add whatever else that project needs.
 
 Like everything else in the trim directory it arrives at the first session start, and a later version of it does not replace a copy already there.
 

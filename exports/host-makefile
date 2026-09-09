@@ -1,6 +1,6 @@
 # Host-side targets for the reviews command. A consuming REPRO opts in with
 #
-#     -include .ai-coding-dev/host-makefile
+#     -include .review-ledger/host-makefile
 #
 # in its repro-config. Use -include: the trim directory does not exist until
 # the REPRO has been started once.
